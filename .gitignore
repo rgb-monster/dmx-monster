@@ -1,0 +1,9 @@
+.DS_Store
+
+.direnv
+node_modules
+/dist
+public/icons.svg
+__pycache__
+
+

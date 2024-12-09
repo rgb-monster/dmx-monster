@@ -1,0 +1,819 @@
+* {
+    box-sizing: border-box;
+}
+
+// layout
+:root {
+    --base-font: "DM Sans", sans-serif;
+    --numerical-font: "Lato";
+
+    // unlike SCSS variables, CSS variables are able to react to media queries and other conditions
+    // caniuse support at 95%: https://caniuse.com/css-variables
+    // note - can't keep these in constants.scss as that one replicates contents accross all files
+    --content-horiz-padding: 20px;
+    --content-vert-padding: 25px;
+
+    // we can't replace SCSS vars for breakpoints just yet as media queries don't support them
+    // however, we can at least proxy them for use in javascript (grep for getCSSVar)
+    --break1: #{mixins.$break1};
+    --break2: #{mixins.$break2};
+    --break3: #{mixins.$break3};
+    --break-mob: #{mixins.$break-mob};
+
+    --max-width: 1200px;
+
+    @media (max-width: 400px) {
+        --content-horiz-padding: 10px;
+    }
+
+    @media (max-width: 350px) {
+        font-size: 0.85em;
+    }
+
+    @media (max-width: mixins.$break2) {
+        h1 {
+            font-size: 1.5em;
+        }
+
+        h2 {
+            font-size: 1.2em;
+        }
+    }
+}
+
+// color values
+:root {
+    --light: hsl(90, 5%, 99%);
+    --light-text: hsl(90, 5%, 24%);
+
+    --light-0: hsl(90, 5%, 96%);
+    --light-1: hsl(90, 5%, 94%);
+    --light-2: hsl(90, 5%, 89%);
+    --light-3: hsl(90, 5%, 84%);
+    --light-4: hsl(90, 5%, 79%);
+    --light-5: hsl(90, 5%, 74%);
+    --light-6: hsl(90, 5%, 69%);
+    --light-7: hsl(90, 5%, 64%);
+    --light-8: hsl(90, 5%, 59%);
+
+    --dark: hsl(207, 10%, 18%);
+    --dark-text: hsl(206, 10%, 73%);
+
+    --darker-2: hsl(207, 10%, 5%);
+    --darker-1: hsl(207, 10%, 11%);
+    --darker: hsl(207, 10%, 16%);
+    --dark-0: hsl(207, 10%, 21%);
+    --dark-1: hsl(207, 10%, 23%);
+    --dark-2: hsl(207, 10%, 28%);
+    --dark-3: hsl(207, 10%, 33%);
+    --dark-4: hsl(207, 10%, 38%);
+    --dark-5: hsl(207, 10%, 43%);
+    --dark-6: hsl(207, 10%, 48%);
+    --dark-7: hsl(207, 10%, 53%);
+    --dark-8: hsl(207, 10%, 58%);
+
+    --confirmed-pink: hsl(326, 78%, 59%);
+    --confirmed-pink-1: hsl(326, 78%, 64%);
+    --confirmed-pink-2: hsl(326, 78%, 69%);
+    --confirmed-pink-3: hsl(326, 78%, 74%);
+    --confirmed-pink-4: hsl(326, 78%, 79%);
+
+    --base: var(--dark);
+    --base-text: var(--dark-text);
+    --base-text-2: hsl(206, 10%, 56%);
+
+    --inverse: var(--light);
+    --inverse-1: var(--light-1);
+    --inverse-text: var(--light-text);
+
+    --alt-bg-1: #7a5050;
+    --alt-bg-2: #507a67;
+    --alt-bg-3: #50767a;
+
+    --base-text-intense: hsl(0, 0%, 100%);
+
+    --base-x3: var(--darker-2);
+    --base-x2: var(--darker-1);
+    --base-x1: var(--darker);
+    --base-faint: var(--dark-0);
+    --base-1: var(--dark-1);
+    --base-2: var(--dark-2);
+    --base-3: var(--dark-3);
+    --base-4: var(--dark-4);
+    --base-5: var(--dark-5);
+    --base-6: var(--dark-6);
+    --base-7: var(--dark-7);
+    --base-8: var(--dark-8);
+
+    --destructive: hsl(7, 58%, 56%);
+    --destructive-1: hsl(7, 58%, 51%);
+    --destructive-2: hsl(7, 58%, 46%);
+    --destructive-3: hsl(7, 58%, 41%);
+    --destructive-4: hsl(7, 58%, 36%);
+    --destructive-5: hsl(7, 58%, 31%);
+    --destructive-6: hsl(7, 58%, 26%);
+
+    --constructive: hsl(137, 37%, 50%);
+    --constructive-1: hsl(137, 32%, 50%);
+    --constructive-2: hsl(137, 27%, 50%);
+    --constructive-3: hsl(137, 22%, 50%);
+    --constructive-4: hsl(137, 17%, 50%);
+    --constructive-5: hsl(137, 12%, 50%);
+    --constructive-6: hsl(137, 7%, 50%);
+    --constructive-bg: hsl(137, 32%, 21%);
+
+    --shadow: hsla(0, 0%, 50%, 0.4);
+    --dim: hsl(0deg 0% 0% / 0.6);
+
+    --border-x1: hsl(207, 10%, 23%);
+    --border: hsl(207, 10%, 28%);
+    --border-1: hsl(207, 10%, 33%);
+    --border-2: hsl(207, 10%, 38%);
+
+    --label: hsl(206, 11%, 59%);
+    --label-x1: hsl(206, 11%, 64%);
+    --label-x2: hsl(206, 11%, 69%);
+    --label-x3: hsl(206, 11%, 74%);
+    --label-x4: hsl(206, 11%, 79%);
+    --label-x5: hsl(206, 11%, 84%);
+
+    --control-hue: 203;
+    --control-saturation: 41%;
+    --control: hsl(var(--control-hue), var(--control-saturation), 58%);
+    --control-1: hsl(var(--control-hue), var(--control-saturation), 53%);
+    --control-2: hsl(var(--control-hue), var(--control-saturation), 48%);
+    --control-3: hsl(var(--control-hue), var(--control-saturation), 43%);
+    --control-4: hsl(var(--control-hue), var(--control-saturation), 38%);
+    --control-5: hsl(var(--control-hue), var(--control-saturation), 33%);
+    --control-6: hsl(var(--control-hue), var(--control-saturation), 28%);
+
+    --control-bg-x2: hsl(var(--control-hue), var(--control-saturation), 15%);
+    --control-bg-x1: hsl(var(--control-hue), var(--control-saturation), 18%);
+    --control-bg: hsl(var(--control-hue), var(--control-saturation), 22%);
+    --control-bg-1: hsl(var(--control-hue), var(--control-saturation), 21%);
+    --control-bg-2: hsl(var(--control-hue), var(--control-saturation), 18%);
+
+    --control-x1: hsl(var(--control-hue), var(--control-saturation), 63%);
+    --control-x2: hsl(var(--control-hue), var(--control-saturation), 68%);
+    --control-x3: hsl(var(--control-hue), var(--control-saturation), 73%);
+    --control-x4: hsl(var(--control-hue), var(--control-saturation), 78%);
+
+    --input-base: hsl(207, 10%, 20%);
+    --input-hover: hsl(207, 10%, 25%);
+    --input-disabled: hsl(207, 10%, 20%);
+    --input-disabled-text: hsl(207, 10%, 50%);
+
+    --focus-fill: hsl(212, 70%, 34%);
+    --focus-outline: hsl(90, 5%, 69%);
+
+    --token: hsl(212, 30%, 28%);
+
+    --modal-bg: hsla(223, 11%, 16%, 0.35);
+    --modal-bg-zero: hsla(223, 11%, 16%, 0);
+
+    color: var(--base-text);
+    background: var(--base);
+
+    --shadow-color: hsl(0deg 0% 0% / 0.075);
+    --shadow-light: hsl(0deg 0% 100% / 0.075);
+
+    --shadow-middle: 0 0 1px 1px var(--shadow-light), 0 1px 1px var(--shadow-color), 0 2px 2px var(--shadow-color),
+        0 4px 4px var(--shadow-color), 0 8px 8px var(--shadow-color), 0 16px 16px var(--shadow-light);
+
+    --shadow-high: 0 0 1px 1px hsl(0deg 0% 0% / 0.2), 0 4px 4px var(--shadow-color), 0 8px 8px var(--shadow-color),
+        0 16px 16px var(--shadow-color), 0 32px 32px var(--shadow-color), 0 0 16px var(--shadow-light);
+}
+
+html {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    font-family: var(--base-font);
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-y: hidden; // avoid scroll messing with body overflow
+
+    // we have an app not a page, so we will use a neutral cursor for text unless it's editable
+    cursor: default;
+}
+
+body,
+.page-container {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+
+    @include mixins.scrollbar;
+}
+
+#app {
+    height: 100%;
+}
+
+.page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 var(--content-horiz-padding);
+
+    &.tupper {
+        max-width: none;
+        background: var(--base-1);
+        height: 100%;
+        padding: 0 var(--content-horiz-padding);
+        min-height: 100vh;
+    }
+}
+
+.description {
+    color: var(--base-text);
+    font-size: 0.85em;
+}
+
+.numbers {
+    font-family: var(--numerical-font);
+}
+
+.flexer {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.unselectable {
+    // make sure this feels more like an app
+    // the abundance of instructions here are to make sure that safari works
+    // note: if this doesn't work, try *
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+em.control {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--control);
+}
+
+a {
+    text-decoration: none;
+    color: var(--base-text);
+
+    // long-press etc
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+
+    &:visited {
+        text-decoration: none;
+        color: var(--base-text);
+    }
+
+    &:hover {
+        text-decoration: none;
+        cursor: pointer;
+        color: var(--control);
+    }
+
+    &.disabled {
+        color: #aaa;
+        pointer-events: none;
+    }
+
+    &:focus {
+        outline: none;
+    }
+
+    &:focus-visible {
+        outline: 1px dashed var(--focus-outline);
+    }
+}
+
+input,
+textarea,
+keygen,
+select,
+button {
+    font-family: var(--base-font);
+    font-size: 1em;
+    background: var(--input-base);
+    border: 1px solid var(--border);
+    color: var(--base-text);
+
+    &:disabled {
+        pointer-events: none;
+        cursor: default;
+    }
+}
+
+input,
+textarea,
+select {
+    border-radius: 3px;
+
+    &:focus {
+        outline: none;
+    }
+
+    &:focus-visible {
+        outline: 1px solid var(--control);
+    }
+
+    &:disabled {
+        pointer-events: all;
+        background: var(--input-disabled);
+        color: var(--input-disabled-text);
+    }
+}
+
+input {
+    &[type="text"],
+    &[type="number"],
+    &[type="url"],
+    &[type="email"],
+    &[type="password"] {
+        padding: 6px;
+    }
+}
+
+input[type="range"] {
+    appearance: none;
+    width: 100%;
+    --bar: var(--base-3);
+    --pin: var(--control);
+    --disabled-bar: var(--base-1);
+    --disabled-pin: var(--base-1);
+
+    background: var(--bar);
+    border: none;
+    height: 8px;
+    align-self: center;
+
+    &::-webkit-slider-thumb {
+        appearance: none;
+        background: var(--pin);
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    &:disabled {
+        pointer-events: none;
+        background-color: var(--disabled-bar);
+        &::-webkit-slider-thumb {
+            background-color: var(--disabled-pin);
+        }
+    }
+
+    &.vertical {
+        direction: rtl;
+        writing-mode: vertical-lr;
+
+        height: unset;
+        width: 10px;
+
+        &::-webkit-slider-thumb {
+            appearance: none;
+            background: var(--pin);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    }
+}
+
+input[type="number"]:not(.spin) {
+    // we don't want the spin buttons as most of the time they just take up valuable space
+    appearance: textfield;
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+}
+
+input[type="number"].spin {
+    &::-webkit-inner-spin-button {
+        opacity: 0.7; // magic!
+    }
+}
+
+select {
+    padding: 6px;
+}
+
+table {
+    border-spacing: 0px;
+    border-collapse: collapse;
+}
+
+button {
+    // we have lots of interactive elements that are styled as links
+    // so we will default to plain looks
+    display: inline-block;
+    cursor: pointer;
+    background: none;
+    border: none;
+    width: auto;
+    text-align: left;
+    padding: 3px;
+
+    // long-press etc
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+
+    * {
+        user-select: none;
+    }
+
+    label {
+        cursor: inherit;
+    }
+
+    &:focus {
+        outline: none;
+    }
+
+    &:focus-visible {
+        outline: 1px dashed var(--focus-outline);
+    }
+}
+
+/**
+ * Correct the inability to style clickable types in iOS and Safari.
+ * https://github.com/necolas/normalize.css/blob/master/normalize.css
+ */
+button,
+[type="button"],
+[type="reset"],
+[type="submit"] {
+    -webkit-appearance: button;
+}
+
+canvas {
+    &:focus {
+        outline: none;
+    }
+}
+
+.link,
+.link:visited,
+button.link {
+    color: var(--control);
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+label {
+    user-select: none;
+}
+
+fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.links a,
+a.links {
+    color: var(--control);
+    text-decoration: underline;
+    word-break: break-word;
+}
+
+.navigable {
+    position: relative;
+
+    &:focus {
+        outline: none;
+    }
+
+    &:focus-visible {
+        outline: none;
+
+        &::before {
+            content: " ";
+            position: absolute;
+            top: -3px;
+            bottom: -3px;
+            left: -3px;
+            right: -3px;
+            margin: 3px;
+            border: 1px dashed var(--focus-outline);
+            border-radius: 3px;
+        }
+    }
+}
+
+h1 {
+    font-weight: 700;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+h2 {
+    font-size: 2em;
+}
+
+kbd {
+    background: var(--base-1);
+    display: inline-block;
+
+    border-radius: 5px;
+    border: 1px solid var(--border-2);
+
+    padding: 6px 7px;
+
+    line-height: 10px;
+    vertical-align: middle;
+    background-color: var(--base-1);
+    border: solid 1px var(--border);
+    border-radius: 6px;
+    box-shadow: inset 0 -1px 0 var(--border);
+
+    .icon {
+        font-size: 1em;
+    }
+}
+
+.span {
+    grid-column: 1/-1;
+}
+
+.span-2 {
+    grid-column: span 2;
+}
+
+.same-line {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5em 1em;
+    align-items: center;
+
+    header {
+        grid-column: 1/-1;
+        display: grid;
+        justify-items: start;
+        width: 100%;
+    }
+
+    @media (max-width: mixins.$break-mob) {
+        grid-template-columns: auto;
+        gap: 5px;
+    }
+}
+
+.all-caps {
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.75em;
+}
+
+.short-long {
+    grid-template-columns: auto 1fr;
+}
+
+.long-short {
+    grid-template-columns: 1fr auto;
+}
+
+.long-short,
+.short-long {
+    display: grid;
+    gap: 0.5em 1em;
+    align-items: center;
+
+    .span,
+    header {
+        grid-column: 1/-1;
+        display: grid;
+        justify-items: start;
+        width: 100%;
+    }
+
+    &.wrap {
+        @media (max-width: mixins.$break-mob) {
+            grid-template-columns: auto;
+            gap: 5px;
+        }
+    }
+}
+
+.hint {
+    font-size: 0.85em;
+    color: var(--label);
+}
+
+.span-all {
+    grid-column: 1/-1;
+}
+
+.show-compact {
+    @media (min-width: mixins.$break-mob) {
+        display: none !important;
+    }
+}
+
+.hide-compact {
+    @media (max-width: mixins.$break-mob) {
+        display: none !important;
+    }
+}
+
+.pills {
+    display: flex;
+    gap: 5px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: start;
+
+    hr {
+        border: none;
+    }
+
+    .btn {
+        .button-contents {
+            padding: 5px;
+        }
+
+        &.outline {
+            border-color: var(--color);
+        }
+    }
+
+    .toggle {
+        width: 100%;
+    }
+
+    &.padded {
+        gap: 8px;
+
+        & > button,
+        a {
+            padding: 6px 12px;
+        }
+    }
+}
+
+button.pill,
+a.pill,
+.pills > button,
+.pills a {
+    font-size: 0.85em;
+    padding: 5px;
+    border-radius: 10px;
+    text-align: center;
+
+    --color: var(--control);
+    border: 1px solid var(--color);
+    color: var(--color);
+    min-width: 4em;
+
+    &.cancel {
+        --color: var(--base-text-2);
+    }
+
+    &.destructive {
+        --color: var(--destructive);
+    }
+
+    &.active {
+        background: var(--control-bg-2);
+        color: #fff;
+        border-color: var(--control);
+    }
+
+    &:disabled {
+        border-color: var(--label);
+        color: var(--label);
+        opacity: 0.5;
+    }
+
+    &.action {
+        background: var(--control);
+        color: var(--light);
+    }
+}
+
+.button-group {
+    background: var(--base-1);
+    display: flex;
+    gap: 5px;
+    border-radius: 10px;
+    align-items: center;
+    overflow: hidden;
+
+    .btn.btn-icon {
+        border-radius: 0;
+        padding: 0 5px;
+    }
+
+    button {
+        display: flex;
+        padding: 5px 10px;
+        height: 100%;
+        align-items: center;
+
+        &.active {
+            background: var(--control);
+            color: var(--light);
+        }
+    }
+}
+
+.listing-actions {
+    display: flex;
+    gap: 10px;
+
+    button.btn,
+    a.btn {
+        background: var(--base-2);
+
+        &:hover {
+            background: var(--base);
+            color: var(--control);
+        }
+
+        &.add {
+            background: var(--confirmed-pink);
+            color: var(--light);
+
+            &:hover {
+                background: var(--confirmed-pink-3);
+                color: var(--light);
+            }
+        }
+    }
+}
+
+.spacer {
+    flex-grow: 1;
+}
+
+.error-message {
+    padding: 20px;
+    text-align: center;
+    background: var(--destructive);
+    margin: 10px 0;
+    color: var(--light);
+    font-size: 0.85em;
+}
+
+.card {
+    padding: calc(var(--content-horiz-padding) + 10px);
+    background: var(--base-1);
+
+    h2:first-child {
+        margin-top: 0;
+    }
+}
+
+.icon-button {
+    display: flex;
+    align-items: center;
+    gap: 0.1em;
+    .icon {
+        font-size: 1em;
+    }
+}
+
+#tooltip {
+    z-index: 6000;
+    position: fixed;
+    background: #999;
+    border-radius: 3px;
+    color: var(--light);
+    border: 1px solid var(--light);
+    font-size: 0.85em;
+    padding: 5px;
+    pointer-events: none;
+    max-width: min(25em, 90vw);
+
+    opacity: 0;
+    margin-top: 8px;
+
+    &.visible {
+        transition: opacity 0.3s ease, margin 0.2s ease;
+        opacity: 1;
+        margin-top: 5px;
+    }
+
+    @media (max-width: mixins.$break-mob) {
+        // don't show tooltips on mob as they don't work the same way with taps
+        display: none;
+    }
+}
+
+#popups {
+    position: absolute;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+}

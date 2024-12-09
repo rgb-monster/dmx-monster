@@ -1,0 +1,31 @@
+{
+    "name": "dmx-monster",
+    "type": "module",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "vue": "vite --host",
+        "debug": "vite --host --debug",
+        "preview": "vite preview --host --port 8085"
+    },
+    "dependencies": {
+        "@fontsource/dm-sans": "^5.1.0",
+        "@fontsource/lato": "^5.1.0",
+        "dmx-web-api": "^0.2.10",
+        "vue": "^3.5.13",
+        "vue-router": "^4.5.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.16.0",
+        "@vitejs/plugin-vue": "^5.2.1",
+        "@vue/compiler-sfc": "^3.5.13",
+        "ejs": "^3.1.10",
+        "glob": "^11.0.0",
+        "globals": "^15.13.0",
+        "handlebars": "^4.7.8",
+        "less": "^4.2.1",
+        "sass": "^1.82.0",
+        "vite": "^6.0.2",
+        "vite-plugin-compression": "^0.5.1"
+    }
+}
