@@ -354,5 +354,17 @@
                 opacity: 1;
             }
         }
+
+        @media (min-width: 1900px) {
+            .sliders {
+                max-width: 2000px;
+            }
+        }
+
+        @media (max-width: 980px) {
+            .sliders {
+                max-width: 600px;
+            }
+        }
     }
 </style>
