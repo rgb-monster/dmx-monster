@@ -130,7 +130,7 @@
                 <a href="https://rgb.monster/" target="_blank">RGB Monster</a>. We have this thing called
                 <a href="https://confirmed.show/about" target="_blank">Confirmed</a> that is awesome for booking gigs,
                 and then, in Confirmed, we have Showtime, that you can use to run light scenes and whatnot. It's very
-                cool, gives an email if you're interested!<br /><br />
+                cool, drop as an email if you're interested!<br /><br />
 
                 RGB Monster team
             </p>
