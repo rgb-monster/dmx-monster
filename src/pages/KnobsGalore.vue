@@ -15,6 +15,8 @@
                 maxChannels: 32,
                 selectedSliders: [],
                 lastSelected: null,
+
+                showModal: "",
             };
         },
         computed: {},
@@ -103,8 +105,56 @@
 </script>
 
 <template>
+    <Modal v-if="showModal == 'about'" @dismiss="showModal = null">
+        <template #header> About DMX Monster </template>
+
+        <main class="links" style="max-width: 35em">
+            <p>Control your DMX lights straight from the browser!</p>
+            <p>
+                You'll need a USB-to-DMX controller to do it, like the
+                <a
+                    href="https://www.enttec.co.uk/product/dmx-usb-interfaces/dmx-usb-pro-professional-1u-usb-to-dmx512-converter/"
+                    target="_blank"
+                    >enttec dmx usb pro</a
+                >
+                one (you can buy it on <a href="https://www.thomann.co.uk/" target="_blank">Thomann</a>)
+            </p>
+
+            <p>
+                This page is fully offline friendly, meaning that if you lose internet, this page will still load
+                (provided it has been loaded before, ofc, because magic is bit out of scope).
+            </p>
+
+            <p>
+                This piece of software has been brought to you by
+                <a href="https://rgb.monster/" target="_blank">RGB Monster</a>. We have this thing called
+                <a href="https://confirmed.show/about" target="_blank">Confirmed</a> that is awesome for booking gigs,
+                and then, in Confirmed, we have Showtime, that you can use to run light scenes and whatnot. It's very
+                cool, gives an email if you're interested!<br /><br />
+
+                RGB Monster team
+            </p>
+        </main>
+
+        <template #buttons>
+            <Btn @click="showModal = null">Close</Btn>
+        </template>
+    </Modal>
+
     <div class="dmx-escape-hatch">
         <div class="toolbar">
+            <Dropdown class="plain hamburger" menu-class="toggles-menu">
+                <template #toggle>
+                    <Icon name="menu" />
+                </template>
+                <template #menu>
+                    <button class="menu-item with-icon" @click="showModal = 'about'">
+                        <Icon name="info" />
+                        About
+                    </button>
+                </template>
+            </Dropdown>
+
             <div class="button-group" :class="{inactive: !accessible}">
                 <button
                     v-for="channels in [32, 64, 128, 256, 512]"
@@ -170,6 +220,8 @@
                 </div>
             </div>
         </div>
+
+        <div class="footer links">&copy; <a href="https://rgb.monster" target="_blank">RGB Monster</a> 2024</div>
     </div>
 </template>
 
@@ -177,7 +229,7 @@
     .dmx-escape-hatch {
         padding: 1em 2em;
         display: grid;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto 1fr auto;
         height: 100vh;
         user-select: none;
 
@@ -189,6 +241,20 @@
         .toolbar {
             display: flex;
             margin-bottom: 1em;
+
+            .hamburger {
+                padding-right: 20px;
+                margin-left: -20px;
+
+                .toggle {
+                    opacity: 0.5;
+                    transition: opacity 300ms ease;
+
+                    &:hover {
+                        opacity: 1;
+                    }
+                }
+            }
 
             .lights-connector-toggle {
                 display: contents;
@@ -277,6 +343,15 @@
                     background: var(--base-2);
                     padding: 5px;
                 }
+            }
+        }
+
+        .footer {
+            text-align: center;
+            opacity: 0.4;
+            transition: opacity 300ms ease;
+            &:hover {
+                opacity: 1;
             }
         }
     }
