@@ -1,15 +1,12 @@
-const OFFLINE_URL = "offline.html";
-
 self.addEventListener("install", event => {
     // Force the waiting service worker to become the active service worker.
     self.skipWaiting();
-
     event.waitUntil(
         (async () => {
             const cache = await caches.open("offline");
             // Setting {cache: 'reload'} in the new request will ensure that the response
             // isn't fulfilled from the HTTP cache; i.e., it will be from the network.
-            await cache.add(new Request(OFFLINE_URL, {cache: "reload"}));
+            await cache.add(new Request("monster-192.png", {cache: "reload"}));
         })()
     );
 });
@@ -62,47 +59,39 @@ self.addEventListener("fetch", event => {
     let requestURL = event.request.url;
     let path = new URL(requestURL).pathname;
 
-    if (requestURL.startsWith("https://fonts.gstatic.com/")) {
+    event.respondWith(
         (async () => {
-            let cachedResponse = await caches.match(event.request);
-            if (cachedResponse) {
-                // console.log("found in cache:", requestURL);
-                return cachedResponse;
-            }
-
-            let res = await fetch(event.request);
-            if ((res.status + "").startsWith("2")) {
-                let cache = await caches.open("fonts");
-                cache.put(event.request.url, res.clone());
-            }
-            return res;
-        })();
-    } else if (event.request.mode == "navigate") {
-        // We only want to call event.respondWith() if this is a navigation request
-        // for an HTML page.
-        event.respondWith(
-            (async () => {
-                try {
-                    // try preload
-                    let preloadResponse = await event.preloadResponse;
-                    if (preloadResponse) {
-                        return preloadResponse;
-                    }
-
-                    // then network
-                    return await fetch(event.request);
-                } catch (error) {
-                    // fallback to offline
-                    console.info(error);
-
-                    // catch is only triggered if an exception is thrown, which is likely
-                    // due to a network error.
-                    // If fetch() returns a valid HTTP response with a response code in
-                    // the 4xx or 5xx range, the catch() will NOT be called.
-                    let cache = await caches.open("offline");
-                    return await cache.match(OFFLINE_URL);
+            if (requestURL.startsWith("https://fonts.gstatic.com/")) {
+                // for fonts we go cache -> network
+                let cachedResponse = await caches.match(event.request);
+                if (cachedResponse) {
+                    // console.log("found in cache:", requestURL);
+                    return cachedResponse;
                 }
-            })()
-        );
-    }
+
+                let response = await fetch(event.request);
+                if (response.ok) {
+                    let cache = await caches.open("fonts");
+                    cache.put(event.request.url, response.clone());
+                }
+                return res;
+            } else {
+                // for everything else we go network -> cache
+                let cache = await caches.open("offline");
+                try {
+                    let response = await fetch(event.request);
+                    cache.put(event.request.url, response.clone());
+                    return response;
+                } catch (error) {
+                    let cachedResponse = await caches.match(event.request);
+                    if (cachedResponse) {
+                        //console.log("found in cache:", requestURL);
+                        return cachedResponse;
+                    } else {
+                        return new Response("", {status: 404});
+                    }
+                }
+            }
+        })()
+    );
 });

@@ -5,8 +5,8 @@
     "private": true,
     "scripts": {
         "vue": "vite --host",
-        "debug": "vite --host --debug",
-        "preview": "vite preview --host --port 8085"
+        "build": "vite build",
+        "preview": "vite preview"
     },
     "dependencies": {
         "@fontsource/dm-sans": "^5.1.0",
