@@ -1,6 +1,6 @@
 let utils = {
     noop: () => {},
-    slug: str => (str || "").replace(/[^\w-]+/g, "-"),
+    slug: str => (str || "").replace(/[^\w-]+/g, "-").toLowerCase(),
 
     getStack() {
         let functions = [...new Error().stack.toString().matchAll(/.*at ([^\s]+).*/gm)];
@@ -642,6 +642,7 @@ utils.filters = Object.fromEntries(
         "zeroPad",
         "normalize",
         "fileSize",
+        "slug",
     ].map(funcName => [funcName, utils[funcName]])
 );
 
