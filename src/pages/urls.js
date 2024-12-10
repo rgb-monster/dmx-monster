@@ -5,7 +5,15 @@ let routes = [
         component: () => import("./KnobsGalore.vue"),
         meta: {
             pageTitle: "DMX Monster",
-            cameFrom: "/",
+        },
+    },
+
+    {
+        path: "/:room",
+        name: "edit-room",
+        component: () => import("./Room.vue"),
+        meta: {
+            pageTitle: "Edit Room - DMX Monster",
         },
     },
 ];

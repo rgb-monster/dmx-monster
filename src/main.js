@@ -1,5 +1,6 @@
 import {createApp} from "vue";
 import {createRouter, createWebHistory} from "vue-router";
+import {createPinia} from "pinia";
 
 import App from "./App.vue";
 import utils from "./scripts/utils.js";
@@ -21,6 +22,9 @@ let router = createRouter({
 });
 
 app.use(router);
+
+const pinia = createPinia();
+app.use(pinia);
 
 // global widgets
 // nicked from https://vuejs.org/v2/guide/components-registration.html#Automatic-Global-Registration-of-Base-Components

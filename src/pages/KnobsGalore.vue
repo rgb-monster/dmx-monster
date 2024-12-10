@@ -17,9 +17,21 @@
                 lastSelected: null,
 
                 showModal: "",
+
+                newRoom: null,
             };
         },
         computed: {},
+
+        watch: {
+            "newRoom.name": {
+                handler(val) {
+                    if (this.newRoom) {
+                        this.newRoom.slug = utils.slug(val);
+                    }
+                },
+            },
+        },
 
         methods: {
             async connect(requestAccess) {
@@ -90,6 +102,11 @@
                     actions[key]();
                 }
             },
+
+            addRoom() {
+                this.newRoom = null;
+
+            },
         },
 
         async mounted() {
@@ -105,6 +122,25 @@
 </script>
 
 <template>
+    <Modal v-if="newRoom" @dismiss="newRoom = null">
+        <template #header> Add room </template>
+        <main style="max-width: 20em">
+            <p>By adding a room you'll be able to describe fixtures and control the lights less insanely</p>
+
+            <div class="same-line">
+                <label>Room name:</label>
+                <Inp type="text" v-focus v-model="newRoom.name" />
+                <label>Short name:</label>
+                <Inp type="text" v-focus :value="newRoom.slug" @change="newRoom.slug = slug($event)" />
+            </div>
+        </main>
+
+        <template #buttons>
+            <Btn class="cancel" @click="newRoom = null">Cancel</Btn>
+            <Btn class="action" :disabled="newRoom?.length < 3" @click="addRoom">Create</Btn>
+        </template>
+    </Modal>
+
     <Modal v-if="showModal == 'about'" @dismiss="showModal = null">
         <template #header> About DMX Monster </template>
 
@@ -165,6 +201,9 @@
                     {{ channels }}
                 </button>
             </div>
+            <div class="spacer" />
+
+            <button class="pill" @click="newRoom = {name: '', slug: ''}">Add Room</button>
 
             <div class="spacer" />
 
@@ -221,7 +260,13 @@
             </div>
         </div>
 
-        <div class="footer links">&copy; <a href="https://rgb.monster" target="_blank">RGB Monster</a> 2024</div>
+        <div class="footer">
+            <div>&copy; <a class="links" href="https://rgb.monster" target="_blank">RGB Monster</a> 2024</div>
+
+            <a href="https://github.com/rgb-monster/dmx-monster" target="_blank" v-tooltip="'Github Repository'">
+                <Icon name="code" />
+            </a>
+        </div>
     </div>
 </template>
 
@@ -347,11 +392,22 @@
         }
 
         .footer {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25em;
+
             text-align: center;
             opacity: 0.4;
             transition: opacity 300ms ease;
             &:hover {
                 opacity: 1;
+            }
+
+            .icon {
+                display: flex;
+                text-decoration: none;
             }
         }
 
