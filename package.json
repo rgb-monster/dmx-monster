@@ -11,7 +11,8 @@
     "dependencies": {
         "@fontsource/dm-sans": "^5.1.0",
         "@fontsource/lato": "^5.1.0",
-        "dmx-web-api": "^0.2.10",
+        "chroma-js": "^3.1.2",
+        "dmx-web-api": "file:../dmx-web-api",
         "pinia": "^2.3.0",
         "vue": "^3.5.13",
         "vue-router": "^4.5.0"

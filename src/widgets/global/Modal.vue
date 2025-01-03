@@ -125,7 +125,6 @@
             background: var(--base);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-high);
-            border: 1px solid var(--base-faint);
 
             display: flex;
             flex-direction: column;

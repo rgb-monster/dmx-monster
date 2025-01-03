@@ -1,16 +1,20 @@
 <script>
-    import {DMX} from "dmx-web-api";
     import utils from "@/scripts/utils.js";
+    import {useDMX} from "@/stores/dmx.js";
+    import {useConfig} from "@/stores/config.js";
+
+    import LightsConnectorToggle from "@/widgets/LightsConnectorToggle.vue";
 
     export default {
         name: "DMX",
-        components: {},
+        components: {
+            LightsConnectorToggle,
+        },
         data() {
             return {
-                accessible: false,
+                dmx: useDMX(),
+                config: useConfig(),
                 connector: null,
-                backendClass: DMX.backends.filter(backend => backend.type == "buffered")[0],
-                backends: DMX.backends,
                 channels: Object.fromEntries(utils.range(1, 513).map(i => [i, 0])),
                 maxChannels: 32,
                 selectedSliders: [],
@@ -21,7 +25,17 @@
                 newRoom: null,
             };
         },
-        computed: {},
+        computed: {
+            accessible: state => state.dmx.accessible,
+            rooms: state => state.config.sortedRooms,
+
+            newRoomOK: state =>
+                state.newRoom &&
+                state.newRoom.slug.length >= 1 &&
+                !state.config.rooms[state.newRoom.slug] &&
+                state.newRoom.name.length >= 3,
+            slugTaken: state => state.newRoom?.slug?.length >= 1 && state.config.rooms[state.newRoom.slug],
+        },
 
         watch: {
             "newRoom.name": {
@@ -34,31 +48,6 @@
         },
 
         methods: {
-            async connect(requestAccess) {
-                let connector = new DMX();
-
-                try {
-                    this.accessible = await connector.connect(null, this.backendClass, requestAccess);
-                    this.connector = connector;
-                } catch (error) {
-                    // just log to console and avoid sending to sentry
-                    console.error(error);
-                }
-            },
-
-            checkCtrl(event) {
-                if (!event.ctrlKey) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    this.connect(true);
-                }
-            },
-
-            changeBackend(backend) {
-                this.backend = backend;
-                this.connect(true);
-            },
-
             updateChannel(channel, val) {
                 if (isNaN(parseInt(val))) {
                     return;
@@ -69,11 +58,14 @@
                     allChannels = [...this.selectedSliders, channel];
                 }
 
+                let changes = {};
                 allChannels.forEach(ch => {
                     let chVal = val;
                     this.channels[ch] = chVal;
-                    this.connector.update({[ch]: chVal});
+                    changes[ch] = chVal;
                 });
+
+                this.dmx.update(changes);
             },
 
             selectSlider(idx, evt) {
@@ -104,14 +96,21 @@
             },
 
             addRoom() {
-                this.newRoom = null;
+                let newRoom = {
+                    id: this.newRoom.slug,
+                    name: this.newRoom.name,
+                    devices: {},
+                    device_groups: {},
+                    presets: {},
+                };
 
+                this.config.updateRoom(newRoom.id, newRoom);
+                this.newRoom = null;
+                this.$router.push({name: "room", params: {roomID: newRoom.id}});
             },
         },
 
         async mounted() {
-            this.connect();
-
             document.addEventListener("keydown", this.handleKeyboard);
         },
 
@@ -122,7 +121,7 @@
 </script>
 
 <template>
-    <Modal v-if="newRoom" @dismiss="newRoom = null">
+    <Modal v-if="newRoom" @dismiss="newRoom = null" class="new-room-modal">
         <template #header> Add room </template>
         <main style="max-width: 20em">
             <p>By adding a room you'll be able to describe fixtures and control the lights less insanely</p>
@@ -130,14 +129,15 @@
             <div class="same-line">
                 <label>Room name:</label>
                 <Inp type="text" v-focus v-model="newRoom.name" />
-                <label>Short name:</label>
+                <label>Short name for URL:</label>
                 <Inp type="text" v-focus :value="newRoom.slug" @change="newRoom.slug = slug($event)" />
+                <div class="error" v-if="slugTaken">Room with this short name already exists</div>
             </div>
         </main>
 
         <template #buttons>
             <Btn class="cancel" @click="newRoom = null">Cancel</Btn>
-            <Btn class="action" :disabled="newRoom?.length < 3" @click="addRoom">Create</Btn>
+            <Btn class="action" :disabled="!newRoomOK" @click="addRoom">Create</Btn>
         </template>
     </Modal>
 
@@ -203,39 +203,17 @@
             </div>
             <div class="spacer" />
 
-            <button class="pill" @click="newRoom = {name: '', slug: ''}">Add Room</button>
+            <div class="rooms flexer">
+                <Link class="pill" v-for="room in rooms" :key="room.id" route="room" :params="{roomID: room.id}">
+                    {{ room.name }}
+                </Link>
+                <button class="flexer" @click="newRoom = {name: '', slug: ''}">
+                    <Icon name="add" filled="true" /> Add Room
+                </button>
+            </div>
 
             <div class="spacer" />
-
-            <div class="lights-connector-toggle">
-                <template v-if="accessible">
-                    <button class="lights-button" icon="toggle_on">
-                        <Icon name="toggle_on" />
-                        <div>DMX connected!</div>
-                    </button>
-                </template>
-
-                <template v-else>
-                    <Dropdown class="plain">
-                        <template #toggle>
-                            <button class="lights-button not-connected" v-tooltip="'Turn On'" @click="checkCtrl">
-                                <Icon name="toggle_off" />
-                                <div>Not connected to DMX</div>
-                            </button>
-                        </template>
-                        <template #menu>
-                            <button
-                                v-for="(backend, idx) in backends"
-                                :key="idx"
-                                class="menu-item"
-                                @click="changeBackend(backend)"
-                            >
-                                {{ backend.label }}
-                            </button>
-                        </template>
-                    </Dropdown>
-                </template>
-            </div>
+            <LightsConnectorToggle />
         </div>
 
         <div class="sliders" :class="{inactive: !accessible}">
@@ -261,7 +239,7 @@
         </div>
 
         <div class="footer">
-            <div>&copy; <a class="links" href="https://rgb.monster" target="_blank">RGB Monster</a> 2024</div>
+            <div>&copy; <a class="links" href="https://rgb.monster" target="_blank">RGB Monster</a></div>
 
             <a href="https://github.com/rgb-monster/dmx-monster" target="_blank" v-tooltip="'Github Repository'">
                 <Icon name="code" />
@@ -271,6 +249,14 @@
 </template>
 
 <style lang="scss">
+    .modal.new-room-modal {
+        .error {
+            color: var(--destructive);
+            font-size: 0.85em;
+            grid-column: 2;
+        }
+    }
+
     .dmx-escape-hatch {
         padding: 1em 2em;
         display: grid;
@@ -281,53 +267,6 @@
         .inactive {
             pointer-events: none;
             opacity: 0.3;
-        }
-
-        .toolbar {
-            display: flex;
-            margin-bottom: 1em;
-
-            .hamburger {
-                padding-right: 20px;
-                margin-left: -20px;
-
-                .toggle {
-                    opacity: 0.5;
-                    transition: opacity 300ms ease;
-
-                    &:hover {
-                        opacity: 1;
-                    }
-                }
-            }
-
-            .lights-connector-toggle {
-                display: contents;
-                font-weight: 600;
-
-                .lights-button {
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                    border: 1px solid var(--border-2);
-                    padding: 5px 10px;
-                    border-radius: 10px;
-
-                    --color: var(--constructive);
-
-                    background: var(--color);
-                    color: var(--dark);
-                    border: none;
-
-                    .icon {
-                        margin-right: 0;
-                    }
-
-                    &.not-connected {
-                        --color: var(--destructive);
-                    }
-                }
-            }
         }
 
         .sliders {

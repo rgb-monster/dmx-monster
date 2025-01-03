@@ -9,8 +9,8 @@ let routes = [
     },
 
     {
-        path: "/:room",
-        name: "edit-room",
+        path: "/:roomID",
+        name: "room",
         component: () => import("./Room.vue"),
         meta: {
             pageTitle: "Edit Room - DMX Monster",

@@ -228,7 +228,7 @@ body,
 }
 
 .description {
-    color: var(--base-text);
+    color: var(--label);
     font-size: 0.85em;
 }
 
@@ -728,26 +728,20 @@ a.pill,
     }
 }
 
-.listing-actions {
+.toolbar {
     display: flex;
-    gap: 10px;
+    margin-bottom: 1em;
 
-    button.btn,
-    a.btn {
-        background: var(--base-2);
+    .hamburger {
+        padding-right: 20px;
+        margin-left: -20px;
 
-        &:hover {
-            background: var(--base);
-            color: var(--control);
-        }
-
-        &.add {
-            background: var(--confirmed-pink);
-            color: var(--light);
+        .toggle {
+            opacity: 0.5;
+            transition: opacity 300ms ease;
 
             &:hover {
-                background: var(--confirmed-pink-3);
-                color: var(--light);
+                opacity: 1;
             }
         }
     }

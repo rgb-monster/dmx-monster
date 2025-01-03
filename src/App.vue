@@ -3,6 +3,7 @@
 <script>
     import "@fontsource/dm-sans/latin.css";
     import "@fontsource/lato";
+    import {useDMX} from "@/stores/dmx.js";
 
     import utils from "@/scripts/utils.js";
 
@@ -26,29 +27,18 @@
         document.body.style["overflow-y"] = meta.showScroll ? "scroll" : null;
     }
 
-    function onThemeChange() {
-        let theme = darkThemeWatcher.matches ? "dark" : "light";
-
-        if (window.innerWidth < 500) {
-            theme = "dark";
-        }
-
-        if (theme == "dark") {
-            document.documentElement.setAttribute("theme", "dark");
-        } else {
-            document.documentElement.removeAttribute("theme");
-        }
-    }
-
-    let darkThemeWatcher = window.matchMedia(`(prefers-color-scheme: dark)`);
-    utils.addEventListener(darkThemeWatcher, "change", onThemeChange);
-
-    let bodyObserver = new ResizeObserver(onThemeChange);
-    bodyObserver.observe(document.body); // just us, for whatever reason
-
     export default {
+        data() {
+            return {
+                dmx: useDMX(),
+            };
+        },
+
         async mounted() {
-            onThemeChange();
+            setTimeout(() => {
+                this.dmx.connect();
+            }, 50);
+
             this.$router.afterEach((to, _from) => {
                 checkPageMeta(to);
                 document.body.scrollTo(0, 0);
@@ -65,6 +55,10 @@
                     wakeLock = await navigator.wakeLock.request("screen");
                 }
             });
+        },
+
+        beforeUnmount() {
+            this.dmx.disconnect();
         },
     };
 </script>
