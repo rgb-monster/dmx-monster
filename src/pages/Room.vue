@@ -19,38 +19,50 @@
                 pickDevice: null,
 
                 currentDevice: null,
-                currentFixture: null,
-                currentMode: null,
+
+                currentFixture: null, // this will always be clone so that we can do save/cancel
+                currentMode: null, // pointer to the mode within currentFixture
             };
         },
         computed: {
             roomID: state => state.$route.params.roomID,
             room: state => state.config.rooms[state.roomID] || {},
             devices: state => state.room?.devices || {},
-            fixtures: state => state.config.sortedFixtures,
+            fixtures: state => state.config.fixtures,
+            sortedFixtures: state => state.config.sortedFixtures,
 
             usedChannels() {
-                let res = {};
+                let res = utils.defaultDict(Array);
                 Object.values(this.devices).forEach(device => {
                     utils
-                        .range(device.address, device.address + this.fixtures[device.fixtureID].channels)
+                        .range(device.address, device.address + this.fixtures[device.model].modes[device.mode].channels)
                         .forEach(channel => {
-                            res[channel] = device.id;
+                            res[channel].push(device.id);
                         });
                 });
+                console.log("Tttttt", res);
                 return res;
             },
 
             models: state => [
                 {id: undefined, label: "---"},
                 {id: "new", label: "New Model"},
-                ...utils.sort(Object.values(state.fixtures), rec => rec.label),
+                ...utils
+                    .sort(Object.values(state.fixtures), fixture => fixture.name)
+                    .map(fixture => ({value: fixture.id, label: fixture.name})),
             ],
+
+            changed: state =>
+                state.currentFixture &&
+                JSON.stringify(state.currentFixture) !=
+                    JSON.stringify(state.config.fixtures[state.currentFixture.id] || {}),
+
+            newFixture: state => state.currentDevice?.model == "new",
         },
 
         methods: {
             addOrSelect(channel, evt) {
-                let deviceIDs = this.usedChannels[channel] || [];
+                let deviceIDs = this.usedChannels[channel];
                 if (deviceIDs.length > 1) {
                     // if there is more than one device (edge case), we should check which one they want
                     this.pickDevice = {
@@ -66,26 +78,30 @@
                 this.currentDevice = JSON.parse(
                     JSON.stringify(this.devices[deviceID] || {id: "new", address: channel, channels: 3})
                 );
+
+                console.log("ffffffffffffF", this.currentDevice);
             },
 
             selectFixture(fixture) {
                 if (this.currentDevice) {
-                    this.currentDevice.fixtureID = fixture.id;
+                    this.currentDevice.model = fixture.id;
                 }
                 if (fixture.id == "new") {
+                    let id = utils.randomID([]);
                     this.currentFixture = {
                         id: "new",
                         modes: {
-                            default: {id: "default", name: "3ch", channels: 3, props: []},
+                            [id]: {id, name: "3ch", channels: 3, props: []},
                         },
                     };
-                    this.currentMode = this.currentFixture.modes.default;
+                    this.currentMode = this.currentFixture.modes[id];
                 } else {
                     this.currentFixture = JSON.parse(JSON.stringify(this.fixtures[fixture.id]));
                 }
             },
 
-            selectMode(mode) {
+            selectMode(fixture, mode) {
+                this.currentDevice.model = fixture.id;
                 this.currentMode = this.currentFixture.modes[mode];
             },
 
@@ -99,6 +115,29 @@
             sendFixtureDMX({channel, val}) {
                 this.dmx.update({[this.currentDevice.address + channel]: val});
             },
+
+            saveFixture() {
+                let fixture = JSON.parse(JSON.stringify(this.currentFixture));
+                if (fixture.id == "new") {
+                    fixture.id = utils.randomID(this.sortedFixtures.map(fixture => fixture.id));
+                }
+
+                this.config.updateFixture(fixture.id, fixture);
+                this.currentDevice.model = fixture.id;
+                this.currentFixture = null;
+            },
+
+            addDevice(fixture, mode) {
+                let id = utils.randomID(Object.values(this.devices).map(device => device.id));
+                let device = {
+                    id,
+                    address: this.currentDevice.address,
+                    model: fixture.id,
+                    mode: mode.id,
+                };
+                this.config.updateRoom(this.room.id, {[`devices.${id}`]: device});
+                this.currentDevice = null;
+            },
         },
 
         async mounted() {},
@@ -111,16 +150,38 @@
     <Modal v-if="currentDevice" class="add-new-device">
         <template #header>
             <template v-if="currentDevice.id == 'new'"> Add Fixture </template>
-            <template v-else> Edit {{ fixtures[currentDevice.fixtureID].name }} </template>
+            <template v-else> Edit {{ fixtures[currentDevice.model].name }} </template>
         </template>
 
         <div class="general-settings">
             <label>Address:</label>
             <Inp type="number" min="1" max="255" v-model="currentDevice.address" style="width: 3em" />
 
-            <label>Model:</label>
-            <FilteredDropdown :src="models" :value="currentDevice.fixtureID" @change="selectFixture($event)" />
-            <button class="link" v-if="currentDevice.fixtureID">Change</button>
+            <template v-if="false && !newFixture">
+                <label>Model:</label>
+                <FilteredDropdown :src="models" :value="currentDevice.model" @change="selectFixture($event)" />
+                <button class="link" v-if="currentDevice.model">Change</button>
+            </template>
+
+            <template v-else-if="currentFixture">
+                <label>Model Name:</label>
+                <Inp type="text" v-model="currentFixture.name" />
+            </template>
+        </div>
+
+        <div v-if="!currentMode" class="fixtures-list">
+            <template v-for="fixture in sortedFixtures">
+                <div>{{ fixture.name }}</div>
+                <div class="modes pills">
+                    <button
+                        v-for="mode in sort(Object.values(fixture.modes), mode => normalize(mode.name))"
+                        :key="mode.id"
+                        @click="addDevice(fixture, mode)"
+                    >
+                        {{ mode.name }}
+                    </button>
+                </div>
+            </template>
         </div>
 
         <template v-if="currentMode">
@@ -128,12 +189,14 @@
         </template>
 
         <template #buttons>
-            <Btn class="action" @click="selectFixture({id: 'new'})" v-if="!currentDevice.fixtureID">
+            <Btn class="action" @click="selectFixture({id: 'new'})" v-if="!currentDevice.model">
                 Add New Model
             </Btn>
             <div class="spacer" />
-            <Btn class="action" v-if="currentDevice.fixtureID">Save</Btn>
             <Btn class="cancel" @click="currentDevice = null">Close</Btn>
+            <Btn class="action" v-if="currentDevice.model" @click="saveFixture" :disabled="!changed">
+                Save&hellip;
+            </Btn>
         </template>
     </Modal>
 
@@ -165,10 +228,10 @@
                             used: usedChannels[channel]?.length == 1,
                             overlap: usedChannels[channel]?.length > 1,
                             'same-prev':
-                                usedChannels[channel] &&
+                                !isEmpty(usedChannels[channel]) &&
                                 usedChannels[channel].join('-') == usedChannels[channel - 1]?.join('-'),
                             'same-next':
-                                usedChannels[channel] &&
+                                !isEmpty(usedChannels[channel]) &&
                                 usedChannels[channel].join('-') == usedChannels[channel + 1]?.join('-'),
                         }"
                         @click="addOrSelect(channel, $event)"
@@ -208,6 +271,27 @@
 
         .fixture-mode-editor {
             margin-top: 2em;
+        }
+
+        .fixtures-list {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            padding-top: 2em;
+            align-items: center;
+
+            & > * {
+                padding: 10px 0;
+                border-bottom: 1px solid var(--border);
+                height: 100%;
+                display: flex;
+                align-items: center;
+            }
+
+            .pills button:hover {
+                transition: background 300ms ease, color 300ms ease;
+                background: var(--control);
+                color: var(--light);
+            }
         }
     }
 
@@ -259,7 +343,7 @@
                     --color: var(--constructive-4);
 
                     &:hover {
-                        --color: var(--constructive-6);
+                        --color: var(--constructive);
                     }
                 }
 
@@ -278,15 +362,15 @@
                     }
                 }
 
-                &.same-prev {
+                &.same-prev .inner {
                     box-shadow: -1px 0 0px 0px var(--color);
                 }
 
-                &.same-next {
+                &.same-next .inner {
                     box-shadow: 1px 0 0px 0px var(--color);
                 }
 
-                &.same-prev.same-next {
+                &.same-prev.same-next .inner {
                     box-shadow: -1px 0 0px 0px var(--color), 1px 0 0px 0px var(--color);
                 }
             }
