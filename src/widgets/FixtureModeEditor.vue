@@ -218,34 +218,12 @@
                 }
                 this.updateProp(channel, "modes", prop.modes);
             },
-
-            updateChannels(channels) {
-                if (this.mode.name == `${this.mode.channels}ch`) {
-                    this.updateProp(null, "name", `${channels}ch`);
-                }
-                this.updateProp(null, "channels", channels);
-            },
         },
     };
 </script>
 
 <template>
     <div class="fixture-mode-editor">
-        <div class="general-settings">
-            <label>Mode name:</label>
-            <Inp type="text" :value="mode.name" @change="mode.name = $event" style="width: 8em" />
-
-            <label>Channels:</label>
-            <Inp
-                type="number"
-                :value="mode.channels"
-                @change="updateChannels($event)"
-                style="width: 4em"
-                min="1"
-                max="512"
-            />
-        </div>
-
         <div class="prop-edit">
             <div class="prop-row header">
                 <label>#</label>
@@ -510,7 +488,7 @@
 <style lang="scss">
     #popups .prop-settings-menu {
         padding: 20px;
-        width: 16em;
+        width: 19em;
         header {
             font-weight: 600;
             font-size: 0.85em;
@@ -589,15 +567,6 @@
     .fixture-mode-editor {
         .prop-edit {
             padding-bottom: 1em;
-        }
-
-        .general-settings {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5em;
-            align-items: center;
-            padding-right: 20px;
-            padding-bottom: 10px;
         }
 
         .color-box {

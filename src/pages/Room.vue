@@ -22,6 +22,9 @@
 
                 currentFixture: null, // this will always be clone so that we can do save/cancel
                 currentMode: null, // pointer to the mode within currentFixture
+
+                fixtureFilter: "",
+                showDMXMapping: true,
             };
         },
         computed: {
@@ -29,7 +32,15 @@
             room: state => state.config.rooms[state.roomID] || {},
             devices: state => state.room?.devices || {},
             fixtures: state => state.config.fixtures,
-            sortedFixtures: state => state.config.sortedFixtures,
+            sortedFixtures() {
+                let fixtures = this.config.sortedFixtures;
+                if (this.fixtureFilter) {
+                    fixtures = fixtures.filter(fixture =>
+                        utils.normalize(fixture.name).includes(utils.normalize(this.fixtureFilter))
+                    );
+                }
+                return fixtures;
+            },
 
             usedChannels() {
                 let res = utils.defaultDict(Array);
@@ -40,7 +51,6 @@
                             res[channel].push(device.id);
                         });
                 });
-                console.log("Tttttt", res);
                 return res;
             },
 
@@ -75,11 +85,10 @@
             },
 
             selectDevice(deviceID, channel) {
+                this.pickDevice = null;
                 this.currentDevice = JSON.parse(
                     JSON.stringify(this.devices[deviceID] || {id: "new", address: channel, channels: 3})
                 );
-
-                console.log("ffffffffffffF", this.currentDevice);
             },
 
             selectFixture(fixture) {
@@ -121,10 +130,13 @@
                 if (fixture.id == "new") {
                     fixture.id = utils.randomID(this.sortedFixtures.map(fixture => fixture.id));
                 }
-
                 this.config.updateFixture(fixture.id, fixture);
-                this.currentDevice.model = fixture.id;
-                this.currentFixture = null;
+
+                console.log("rrrrrrrrrr", this.currentDevice);
+                if (this.currentDevice.id == "new") {
+                    this.addDevice(fixture, this.currentMode);
+                }
+                this.dismissEdit();
             },
 
             addDevice(fixture, mode) {
@@ -134,9 +146,28 @@
                     address: this.currentDevice.address,
                     model: fixture.id,
                     mode: mode.id,
+                    name: `${this.fixtures[fixture.id].name} - ${this.currentDevice.address}`,
                 };
                 this.config.updateRoom(this.room.id, {[`devices.${id}`]: device});
                 this.currentDevice = null;
+            },
+
+            removeDevice(deviceID) {
+                this.config.updateRoom(this.room.id, {$delete: `devices.${deviceID}`});
+                this.currentDevice = null;
+            },
+
+            dismissEdit() {
+                this.currentFixture = null;
+                this.currentDevice = null;
+                this.currentMode = null;
+            },
+
+            updateChannels(channels) {
+                if (this.currentMode.name == `${this.currentMode.channels}ch`) {
+                    this.updateMode({channel: null, field: "name", val: `${channels}ch`});
+                }
+                this.updateMode({channel: null, field: "channels", val: channels});
             },
         },
 
@@ -147,11 +178,8 @@
 </script>
 
 <template>
-    <Modal v-if="currentDevice" class="add-new-device">
-        <template #header>
-            <template v-if="currentDevice.id == 'new'"> Add Fixture </template>
-            <template v-else> Edit {{ fixtures[currentDevice.model].name }} </template>
-        </template>
+    <Modal v-if="currentDevice && currentDevice.id != 'new'" class="add-new-device">
+        <template #header> Edit {{ fixtures[currentDevice.model].name }} </template>
 
         <div class="general-settings">
             <label>Address:</label>
@@ -169,19 +197,93 @@
             </template>
         </div>
 
-        <div v-if="!currentMode" class="fixtures-list">
-            <template v-for="fixture in sortedFixtures">
-                <div>{{ fixture.name }}</div>
-                <div class="modes pills">
-                    <button
-                        v-for="mode in sort(Object.values(fixture.modes), mode => normalize(mode.name))"
-                        :key="mode.id"
-                        @click="addDevice(fixture, mode)"
-                    >
-                        {{ mode.name }}
-                    </button>
+        <template v-if="currentMode">
+            <FixtureModeEditor :mode="currentMode" @update="updateMode($event)" @send="sendFixtureDMX($event)" />
+        </template>
+
+        <template #buttons>
+            <Btn class="action" @click="selectFixture({id: 'new'})" v-if="!currentDevice.model">
+                Add New Model&hellip;
+            </Btn>
+            <Btn class="destructive" @click="removeDevice(currentDevice.id)" v-else> Remove Fixture</Btn>
+            <div class="spacer" />
+            <div class="spacer" />
+            <Btn class="cancel" @click="dismissEdit">Close</Btn>
+            <Btn class="action" v-if="currentDevice.model" @click="saveFixture" :disabled="!changed">
+                Save&hellip;
+            </Btn>
+        </template>
+    </Modal>
+
+    <Modal v-else-if="currentDevice && currentDevice.id == 'new'" class="add-new-device">
+        <template #header> Add Fixture </template>
+
+        <div
+            style="display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center"
+            v-if="currentMode"
+        >
+            <template v-if="currentFixture">
+                <label>Model Name:</label>
+                <div>
+                    <Inp type="text" v-model="currentFixture.name" />
                 </div>
             </template>
+
+            <label>Address:</label>
+            <div>
+                <Inp type="number" min="1" max="255" v-model="currentDevice.address" style="width: 3em" />
+            </div>
+
+            <template v-if="currentMode">
+                <label>Mode name:</label>
+                <Inp
+                    type="text"
+                    :value="currentMode.name"
+                    @change="updateMode({channel: null, field: 'name', val: $event})"
+                    style="width: 6em"
+                />
+
+                <label>Channels:</label>
+                <Inp
+                    type="number"
+                    :value="currentMode.channels"
+                    @change="updateChannels($event)"
+                    style="width: 3em"
+                    min="1"
+                    max="512"
+                />
+            </template>
+        </div>
+
+        <div class="select-fixture" v-if="!currentMode">
+            <Inp
+                class="filter"
+                type="text"
+                v-model="fixtureFilter"
+                placeholder="Filter&hellip;"
+                style="width: 100%"
+                v-focus
+            />
+
+            <div class="no-data-message" v-if="!config.sortedFixtures.length">
+                <div>You don't have any fixture models yet!</div>
+                <button class="pill" @click="selectFixture({id: 'new'})">Add New Model</button>
+            </div>
+
+            <div v-else class="fixtures-list">
+                <template v-for="fixture in sortedFixtures">
+                    <div>{{ fixture.name }}</div>
+                    <div class="modes pills">
+                        <button
+                            v-for="mode in sort(Object.values(fixture.modes), mode => normalize(mode.name))"
+                            :key="mode.id"
+                            @click="addDevice(fixture, mode)"
+                        >
+                            {{ mode.name }}
+                        </button>
+                    </div>
+                </template>
+            </div>
         </div>
 
         <template v-if="currentMode">
@@ -190,10 +292,10 @@
 
         <template #buttons>
             <Btn class="action" @click="selectFixture({id: 'new'})" v-if="!currentDevice.model">
-                Add New Model
+                Add New Model&hellip;
             </Btn>
             <div class="spacer" />
-            <Btn class="cancel" @click="currentDevice = null">Close</Btn>
+            <Btn class="cancel" @click="dismissEdit">Cancel</Btn>
             <Btn class="action" v-if="currentDevice.model" @click="saveFixture" :disabled="!changed">
                 Save&hellip;
             </Btn>
@@ -202,12 +304,18 @@
 
     <Popup class="select-device-popup menu" v-if="pickDevice" :elem="pickDevice.elem" @dismiss="pickDevice = null">
         <button v-for="deviceID in pickDevice.ids" :key="deviceID" class="menu-item" @click="selectDevice(deviceID)">
-            Device one
+            {{ devices[deviceID].name }}
         </button>
     </Popup>
 
     <div class="edit-room">
         <div class="toolbar">
+            <button class="flexer pill" @click="showDMXMapping = !showDMXMapping">
+                DMX Mapping
+                <Icon :name="!showDMXMapping ? 'expand_more' : 'expand_less'" />
+            </button>
+
+            <div class="spacer" />
             {{ room.name }}
 
             <div class="spacer" />
@@ -215,31 +323,38 @@
         </div>
 
         <main>
-            <label style="display: inline-block; padding-bottom: 0.5em">
-                DMX Mapping
-                <div class="description">Click on any channel box to add/edit device</div>
-            </label>
-            <div class="dmx-mapping-box">
-                <template v-for="channel in range(1, 513)">
-                    <button
-                        class="channel-box"
-                        v-tooltip="pickDevice ? '' : channel"
-                        :class="{
-                            used: usedChannels[channel]?.length == 1,
-                            overlap: usedChannels[channel]?.length > 1,
-                            'same-prev':
-                                !isEmpty(usedChannels[channel]) &&
-                                usedChannels[channel].join('-') == usedChannels[channel - 1]?.join('-'),
-                            'same-next':
-                                !isEmpty(usedChannels[channel]) &&
-                                usedChannels[channel].join('-') == usedChannels[channel + 1]?.join('-'),
-                        }"
-                        @click="addOrSelect(channel, $event)"
-                    >
-                        <div class="inner" />
-                    </button>
-                </template>
-            </div>
+            <template v-if="showDMXMapping">
+                <div class="description" style="padding-bottom: 0.5em">Click on any channel box to add/edit device</div>
+                <div class="dmx-mapping-box">
+                    <template v-for="channel in range(1, 513)">
+                        <button
+                            class="channel-box"
+                            v-tooltip="
+                                pickDevice
+                                    ? ''
+                                    : usedChannels[channel].length
+                                    ? `${channel}: ${usedChannels[channel]
+                                          .map(deviceID => devices[deviceID].name)
+                                          .join(', ')}`
+                                    : channel
+                            "
+                            :class="{
+                                used: usedChannels[channel]?.length == 1,
+                                overlap: usedChannels[channel]?.length > 1,
+                                'same-prev':
+                                    !isEmpty(usedChannels[channel]) &&
+                                    usedChannels[channel].join('-') == usedChannels[channel - 1]?.join('-'),
+                                'same-next':
+                                    !isEmpty(usedChannels[channel]) &&
+                                    usedChannels[channel].join('-') == usedChannels[channel + 1]?.join('-'),
+                            }"
+                            @click="addOrSelect(channel, $event)"
+                        >
+                            <div class="inner" />
+                        </button>
+                    </template>
+                </div>
+            </template>
         </main>
     </div>
 </template>
@@ -247,7 +362,7 @@
 <style lang="scss">
     .modal.add-new-device {
         .modal-dialog {
-            min-width: 30em;
+            min-width: min(30em, 100vw);
         }
 
         .general-settings {
@@ -273,24 +388,49 @@
             margin-top: 2em;
         }
 
-        .fixtures-list {
+        .select-fixture {
             display: grid;
-            grid-template-columns: 1fr auto;
-            padding-top: 2em;
-            align-items: center;
+            grid-template-rows: auto 1fr;
+            min-height: 20em;
 
-            & > * {
-                padding: 10px 0;
-                border-bottom: 1px solid var(--border);
-                height: 100%;
-                display: flex;
-                align-items: center;
+            .filter {
+                margin-bottom: 0.5em;
+
+                &:focus {
+                    outline: none;
+                }
             }
 
-            .pills button:hover {
-                transition: background 300ms ease, color 300ms ease;
-                background: var(--control);
-                color: var(--light);
+            .no-data-message {
+                height: 100%;
+                display: grid;
+                align-content: center;
+                justify-items: center;
+                gap: 10px;
+
+                button {
+                    padding: 10px 15px;
+                }
+            }
+
+            .fixtures-list {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                align-items: center;
+
+                & > * {
+                    padding: 10px 0;
+                    border-bottom: 1px solid var(--border);
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .pills button:hover {
+                    transition: background 300ms ease, color 300ms ease;
+                    background: var(--control);
+                    color: var(--light);
+                }
             }
         }
     }
